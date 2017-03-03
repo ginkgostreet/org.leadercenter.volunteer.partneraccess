@@ -12,16 +12,15 @@
       <help_post></help_post>
       <weight>10</weight>
       <is_active>1</is_active>
-      <table_name>civicrm_value_volunteer_arlington_partner_access_14</table_name>
+      <table_name>civicrm_value_volunteer_arlington_partner_access</table_name>
       <is_multiple>0</is_multiple>
-      <collapse_adv_display>0</collapse_adv_display>
-      <created_date>2017-03-03 16:05:45</created_date>
-      <is_reserved>0</is_reserved>
+      <collapse_adv_display>1</collapse_adv_display>
+      <is_reserved>1</is_reserved>
     </CustomGroup>
   </CustomGroups>
   <CustomFields>
     <CustomField>
-      <name>Access_group_for</name>
+      <name>partner_id</name>
       <label>Access group for</label>
       <data_type>ContactReference</data_type>
       <html_type>Autocomplete-Select</html_type>
@@ -34,8 +33,7 @@
       <text_length>255</text_length>
       <note_columns>60</note_columns>
       <note_rows>4</note_rows>
-      <column_name>access_group_for_21</column_name>
-      <filter>action=lookup&amp;group=1</filter>
+      <column_name>partner_id</column_name>
       <in_selector>0</in_selector>
       <custom_group_name>Volunteer_Arlington_Partner_Access</custom_group_name>
     </CustomField>
