@@ -34,10 +34,14 @@ class CRM_Partneraccess_Upgrader extends CRM_Partneraccess_Upgrader_Base {
   }
 
   /**
-   * Example: Run an external SQL script when the module is uninstalled.
-   *
+   * Remove custom group added by XML. Child custom fields are removed automatically.
+   */
   public function uninstall() {
-   $this->executeSqlFile('sql/myuninstall.sql');
+    civicrm_api3('CustomGroup', 'get', array(
+      'extends' => 'Group',
+      'name' => 'volunteer_arlington_partner_access',
+      'api.CustomGroup.delete' => array(),
+    ));
   }
 
   /**
