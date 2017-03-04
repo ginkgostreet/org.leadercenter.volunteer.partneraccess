@@ -134,31 +134,134 @@ function partneraccess_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 }
 
 /**
- * Functions below this ship commented out. Uncomment as required.
+ * Implements hook_civicrm_post().
  *
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
+ */
+function partneraccess_civicrm_post($op, $objectName, $objectId, &$objectRef) {
+  $function = '_' . __FUNCTION__ . '_' . $objectName;
+  if (is_callable($function)) {
+    $function($op, $objectId, $objectRef);
+  }
+}
 
 /**
- * Implements hook_civicrm_preProcess().
+ * (Delegated) Implements hook_civicrm_post().
  *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_preProcess
+ * Manages creation/deletion of partner-specific groups used in access control.
  *
-function partneraccess_civicrm_preProcess($formName, &$form) {
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
+ */
+function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
+  // We add an extra return with this if-statement, but it avoids unnecessary
+  // lookups in the case of operations we don't care about.
+  if (!in_array($op, array('create', 'delete'))) {
+    return;
+  }
 
-} // */
-
-/**
- * Implements hook_civicrm_navigationMenu().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
- *
-function partneraccess_civicrm_navigationMenu(&$menu) {
-  _partneraccess_civix_insert_navigation_menu($menu, NULL, array(
-    'label' => ts('The Page', array('domain' => 'org.leadercenter.volunteer.partneraccess')),
-    'name' => 'the_page',
-    'url' => 'civicrm/the-page',
-    'permission' => 'access CiviReport,access CiviContribute',
-    'operator' => 'OR',
-    'separator' => 0,
+  $partnerGroupId = civicrm_api3('Group', 'getvalue', array(
+    'return' => 'id',
+    // hardcoded as this already exists in production
+    'name' => 'Nonprofit_Partners_Active_11',
   ));
-  _partneraccess_civix_navigationMenu($menu);
-} // */
+  if ($groupId !== $partnerGroupId) {
+    return;
+  }
+
+  $helper = ($op === 'create' ? 'activatePartnerGroup' : 'deactivatePartnerGroup');
+  $result = civicrm_api3('OptionValue', 'get', array(
+    'name' => array('LIKE' => 'varl_partner_access_%'),
+    'option_group_id' => 'group_type',
+    'return' => 'name',
+  ));
+  foreach ($contactIds as $cid) {
+    foreach ($result['values'] as $v) {
+      $groupType = $v['name'];
+      $helper($cid, $groupType);
+    }
+  }
+}
+
+/**
+ * Creates partner group if it doesn't already exist, else enables it.
+ *
+ * @param mixed $partnerId
+ *   Int or int-like string representing the contact ID.
+ * @param string $type
+ *   A group type; see optionGroup group_type.
+ */
+function activatePartnerGroup($partnerId, $type) {
+  $params = array(
+    getPartnerCustomFieldName() => $partnerId,
+    'group_type' => $type,
+    'parents' => getParentGroupId(),
+  );
+
+  $exists = civicrm_api3('Group', 'getcount', $params);
+  if ($exists) {
+    $params['api.Group.create'] = array(
+      'is_active' => 1,
+    );
+    civicrm_api3('Group', 'get', $params);
+  }
+  else {
+    // title is a required field
+    $params['title'] = "Auto-generated $type for contact ID $partnerId";
+    civicrm_api3('Group', 'create', $params);
+  }
+
+}
+
+/**
+ * Disables partner group if it exists.
+ *
+ * @param mixed $partnerId
+ *   Int or int-like string representing the contact ID.
+ * @param string $type
+ *   A group type; see optionGroup group_type.
+ */
+function deactivatePartnerGroup($partnerId, $type) {
+  civicrm_api3('Group', 'get', array(
+    getPartnerCustomFieldName() => $partnerId,
+    'group_type' => $type,
+    'api.Group.create' => array(
+      'is_active' => 0,
+    ),
+  ));
+}
+
+/**
+ * @staticvar mixed $id
+ *   See return.
+ * @return string
+ *   An int-link string representing the ID of the group which contains all
+ *   partner-specific access groups.
+ */
+function getParentGroupId() {
+  static $id;
+  if (empty($id)) {
+    $id = civicrm_api3('Group', 'getvalue', array(
+      'name' => 'varl_partner_access_parent_group',
+      'return' => 'id',
+    ));
+  }
+  return $id;
+}
+
+/**
+ * Get API-suitable field name for the partner_id custom field.
+ *
+ * @staticvar string $name
+ * @return string
+ */
+function getPartnerCustomFieldName() {
+  static $name;
+  if (empty($name)) {
+    $name = 'custom_' . civicrm_api3('CustomField', 'getvalue', array(
+          'return' => 'id',
+          'custom_group_id' => 'Volunteer_Arlington_Partner_Access',
+          'name' => 'partner_id',
+    ));
+  }
+  return $name;
+}
