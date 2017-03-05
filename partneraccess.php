@@ -168,9 +168,9 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
     return;
   }
 
-  $helper = ($op === 'create' ? 'activatePartnerGroup' : 'deactivatePartnerGroup');
+  $helper = ($op === 'create' ? 'activatePartnerStaticGroup' : 'deactivatePartnerStaticGroup');
   $result = civicrm_api3('OptionValue', 'get', array(
-    'name' => array('LIKE' => 'varl_partner_access_%'),
+    'name' => array('LIKE' => 'varl_partner_access_static_%'),
     'option_group_id' => 'group_type',
     'return' => 'name',
   ));
@@ -190,7 +190,7 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
  * @param string $type
  *   A group type; see optionGroup group_type.
  */
-function activatePartnerGroup($partnerId, $type) {
+function activatePartnerStaticGroup($partnerId, $type) {
   $params = array(
     getPartnerCustomFieldName() => $partnerId,
     'group_type' => $type,
@@ -220,7 +220,7 @@ function activatePartnerGroup($partnerId, $type) {
  * @param string $type
  *   A group type; see optionGroup group_type.
  */
-function deactivatePartnerGroup($partnerId, $type) {
+function deactivatePartnerStaticGroup($partnerId, $type) {
   civicrm_api3('Group', 'get', array(
     getPartnerCustomFieldName() => $partnerId,
     'group_type' => $type,
