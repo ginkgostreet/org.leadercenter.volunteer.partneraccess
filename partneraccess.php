@@ -148,7 +148,7 @@ function partneraccess_civicrm_post($op, $objectName, $objectId, &$objectRef) {
 /**
  * (Delegated) Implements hook_civicrm_post().
  *
- * Manages creation/deletion of partner-specific groups used in access control.
+ * Delegates creation/deletion of partner access groups to CRM_Partneraccess_GroupManager.
  *
  * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
  */
@@ -168,100 +168,9 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
     return;
   }
 
-  $helper = ($op === 'create' ? 'activatePartnerStaticGroup' : 'deactivatePartnerStaticGroup');
-  $result = civicrm_api3('OptionValue', 'get', array(
-    'name' => array('LIKE' => 'varl_partner_access_static_%'),
-    'option_group_id' => 'group_type',
-    'return' => 'name',
-  ));
+  $action = ($op === 'create' ? 'activate' : 'deactivate');
   foreach ($contactIds as $cid) {
-    foreach ($result['values'] as $v) {
-      $groupType = $v['name'];
-      $helper($cid, $groupType);
-    }
+    $groupManager = new CRM_Partneraccess_GroupManager($cid);
+    $groupManager->$action();
   }
-}
-
-/**
- * Creates partner group if it doesn't already exist, else enables it.
- *
- * @param mixed $partnerId
- *   Int or int-like string representing the contact ID.
- * @param string $type
- *   A group type; see optionGroup group_type.
- */
-function activatePartnerStaticGroup($partnerId, $type) {
-  $params = array(
-    getPartnerCustomFieldName() => $partnerId,
-    'group_type' => $type,
-    'parents' => getParentGroupId(),
-  );
-
-  $exists = civicrm_api3('Group', 'getcount', $params);
-  if ($exists) {
-    $params['api.Group.create'] = array(
-      'is_active' => 1,
-    );
-    civicrm_api3('Group', 'get', $params);
-  }
-  else {
-    // title is a required field
-    $params['title'] = "Auto-generated $type for contact ID $partnerId";
-    civicrm_api3('Group', 'create', $params);
-  }
-
-}
-
-/**
- * Disables partner group if it exists.
- *
- * @param mixed $partnerId
- *   Int or int-like string representing the contact ID.
- * @param string $type
- *   A group type; see optionGroup group_type.
- */
-function deactivatePartnerStaticGroup($partnerId, $type) {
-  civicrm_api3('Group', 'get', array(
-    getPartnerCustomFieldName() => $partnerId,
-    'group_type' => $type,
-    'api.Group.create' => array(
-      'is_active' => 0,
-    ),
-  ));
-}
-
-/**
- * @staticvar mixed $id
- *   See return.
- * @return string
- *   An int-link string representing the ID of the group which contains all
- *   partner-specific access groups.
- */
-function getParentGroupId() {
-  static $id;
-  if (empty($id)) {
-    $id = civicrm_api3('Group', 'getvalue', array(
-      'name' => 'varl_partner_access_parent_group',
-      'return' => 'id',
-    ));
-  }
-  return $id;
-}
-
-/**
- * Get API-suitable field name for the partner_id custom field.
- *
- * @staticvar string $name
- * @return string
- */
-function getPartnerCustomFieldName() {
-  static $name;
-  if (empty($name)) {
-    $name = 'custom_' . civicrm_api3('CustomField', 'getvalue', array(
-          'return' => 'id',
-          'custom_group_id' => 'Volunteer_Arlington_Partner_Access',
-          'name' => 'partner_id',
-    ));
-  }
-  return $name;
 }
