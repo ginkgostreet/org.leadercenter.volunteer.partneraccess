@@ -26,7 +26,7 @@ class CRM_Partneraccess_Config {
 
   /**
    * @var string
-   *   An int-link string representing the ID of the group which contains all
+   *   An int-like string representing the ID of the group which contains all
    *   partner-specific access groups.
 
    */

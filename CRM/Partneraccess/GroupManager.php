@@ -6,11 +6,32 @@
 class CRM_Partneraccess_GroupManager {
 
   /**
+   * Provides access to extension config.
+   *
+   * @var CRM_Partneraccess_Config
+   */
+  private $config;
+
+  /**
+   * API-suitable field name for the partner_id custom field.
+   *
+   * @var string
+   */
+  private $customFieldName;
+
+  /**
    * @var array
    *   A registry of groups associated with this partner, keyed by type. Note:
    *   it is assumed that only one group of each type can exist per partner.
    */
   private $groups = array();
+
+  /**
+   * @var type
+   *   An int-like string representing the ID of the group which contains all
+   *   partner-specific access groups.
+   */
+  private $parentGroupId;
 
   /**
    * The contact ID of the partner whose groups are being managed.
@@ -22,6 +43,9 @@ class CRM_Partneraccess_GroupManager {
 
   public function __construct($partnerId) {
     $this->partnerId = $partnerId;
+    $this->config = CRM_Partneraccess_Config::singleton();
+    $this->customFieldName = $this->config->getPartnerCustomFieldApiName();
+    $this->parentGroupId = $this->config->getParentGroupId();
   }
 
   /**
@@ -46,15 +70,11 @@ class CRM_Partneraccess_GroupManager {
    * Creates each partner group if it doesn't already exist, else enables it.
    */
   public function activate() {
-    $config = CRM_Partneraccess_Config::singleton();
-    $fieldName = $config->getPartnerCustomFieldApiName();
-    $parentGroupId = $config->getParentGroupId();
-
-    foreach ($config->getGroupTypes('static') as $type) {
+    foreach ($this->config->getGroupTypes('static') as $type) {
       $params = array(
-        $fieldName => $this->partnerId,
+        $this->customFieldName => $this->partnerId,
         'group_type' => $type,
-        'parents' => $parentGroupId,
+        'parents' => $this->parentGroupId,
       );
 
       if ($this->groupExists($params)) {
@@ -74,13 +94,10 @@ class CRM_Partneraccess_GroupManager {
   /**
    * Disables each partner group.
    */
-  function deactivate() {
-    $config = CRM_Partneraccess_Config::singleton();
-    $fieldName = $config->getPartnerCustomFieldApiName();
-
+  public function deactivate() {
     civicrm_api3('Group', 'get', array(
-      $fieldName => $this->partnerId,
-      'group_type' => array('IN' => $config->getGroupTypes()),
+      $this->customFieldName => $this->partnerId,
+      'group_type' => array('IN' => $this->config->getGroupTypes()),
       'api.Group.create' => array(
         'is_active' => 0,
       ),
