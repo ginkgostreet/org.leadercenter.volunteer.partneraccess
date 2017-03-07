@@ -169,3 +169,27 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
     $groupManager->$action();
   }
 }
+
+/**
+ * (Delegated) Implements hook_civicrm_post().
+ *
+ * Manages membership of contacts in partner staff group based on relationship.
+ * While a smart group could typically be used for this, smart groups *can't*
+ * be the actor in an ACL rule, so we are left to manage it manually.
+ *
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
+ */
+function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relationship) {
+  if ($relationship->relationship_type_id !== CRM_Partneraccess_Config::singleton()->getEmploymentRelId()) {
+    return;
+  }
+
+  $individualId = $relationship->contact_id_a;
+  $partnerId = $relationship->contact_id_b;
+  if ($op === 'delete' || !$relationship->is_active) {
+    CRM_Partneraccess_GroupMembershipManager::remove($individualId, 'varl_partner_access_static_staff', $partnerId);
+  }
+  else {
+    CRM_Partneraccess_GroupMembershipManager::add($individualId, 'varl_partner_access_static_staff', $partnerId);
+  }
+}
