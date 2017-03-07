@@ -41,6 +41,13 @@ class CRM_Partneraccess_Config {
   private $partnerCustomFieldApiName = NULL;
 
   /**
+   * @var string
+   *   An int-like string representing the ID of the group which denotes a
+   *   contact is a partner.
+   */
+  private $partnerGroupId = NULL;
+
+  /**
    * The point of declaring this is to make it private, so that only the
    * singleton method can be used to instantiate it.
    */
@@ -128,6 +135,22 @@ class CRM_Partneraccess_Config {
       ));
     }
     return $this->partnerCustomFieldApiName;
+  }
+
+  /**
+   * A simple getter.
+   *
+   * @see class member parentGroupId.
+   */
+  public function getPartnerGroupId() {
+    if (!isset($this->partnerGroupId)) {
+      $this->partnerGroupId = civicrm_api3('Group', 'getvalue', array(
+        'return' => 'id',
+        // hardcoded as this already exists in production
+        'name' => 'Nonprofit_Partners_Active_11',
+      ));
+    }
+    return $this->partnerGroupId;
   }
 
 }

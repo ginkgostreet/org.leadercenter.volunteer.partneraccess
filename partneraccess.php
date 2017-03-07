@@ -159,12 +159,7 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
     return;
   }
 
-  $partnerGroupId = civicrm_api3('Group', 'getvalue', array(
-    'return' => 'id',
-    // hardcoded as this already exists in production
-    'name' => 'Nonprofit_Partners_Active_11',
-  ));
-  if ($groupId !== $partnerGroupId) {
+  if ($groupId !== CRM_Partneraccess_Config::singleton()->getPartnerGroupId()) {
     return;
   }
 
