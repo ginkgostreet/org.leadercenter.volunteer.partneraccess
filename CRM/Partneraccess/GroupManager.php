@@ -81,14 +81,18 @@ class CRM_Partneraccess_GroupManager {
         $params['api.Group.create'] = array(
           'is_active' => 1,
         );
-        civicrm_api3('Group', 'get', $params);
+        $api = civicrm_api3('Group', 'get', $params);
       }
       else {
         // title is a required field
         $params['title'] = "Auto-generated ($type: {$this->partnerId})";
-        civicrm_api3('Group', 'create', $params);
+        $api = civicrm_api3('Group', 'create', $params);
       }
+
+      $this->groups[$type] = $api['id'];
     }
+
+    $this->activateSmartGroup();
   }
 
   /**
@@ -102,6 +106,103 @@ class CRM_Partneraccess_GroupManager {
         'is_active' => 0,
       ),
     ));
+  }
+
+  /**
+   * If the smart group exists, enables it. Otherwise, creates a saved search,
+   * creates a new group, and associates the two.
+   */
+  private function activateSmartGroup() {
+    $type = 'varl_partner_access_smart_emailable';
+    $params = array(
+      $this->customFieldName => $this->partnerId,
+      'group_type' => $type,
+      'parents' => $this->parentGroupId,
+    );
+
+    if ($this->groupExists($params)) {
+      $params['api.Group.create'] = array(
+        'is_active' => 1,
+      );
+      $api = civicrm_api3('Group', 'get', $params);
+    }
+    else {
+      $customSearchId = civicrm_api3('CustomSearch', 'getvalue', array(
+        'name' => 'CRM_Contact_Form_Search_Custom_Group',
+        'return' => 'value',
+      ));
+      $savedSearch = civicrm_api3('SavedSearch', 'create', array(
+        'form_values' => array(
+          array(
+            'csid', // field name
+            '=', // operator
+            $customSearchId, // "sql filter syntax"
+            0, // always 0
+            0, // always 0
+          ),
+          array(
+            'entryURL',
+            '=',
+            CIVICRM_UF_BASEURL . "/civicrm/contact/search/custom?csid={$customSearchId}&reset=1",
+            0,
+            0,
+          ),
+          array(
+            'includeGroups',
+            'IN',
+            array(
+              $this->groups['varl_partner_access_static_volunteer'],
+              $this->groups['varl_partner_access_static_optin'],
+            ),
+            0,
+            0,
+          ),
+          array(
+            'excludeGroups',
+            'IN',
+            array($this->groups['varl_partner_access_static_optout']),
+            0,
+            0,
+          ),
+          array(
+            'andOr',
+            '=',
+            1,
+            0,
+            0,
+          ),
+          array(
+            'customSearchID',
+            '=',
+            $customSearchId,
+            0,
+            0,
+          ),
+          array(
+            'customSearchClass',
+            '=',
+            'CRM_Contact_Form_Search_Custom_Group',
+            0,
+            0,
+          ),
+        ),
+        'search_custom_id' => $customSearchId,
+      ));
+
+      // workaround for CRM-20222
+      $bao = CRM_Contact_BAO_SavedSearch::findById($savedSearch['id']);
+      $bao->search_custom_id = $customSearchId;
+      $bao->save();
+      // end workaround for CRM-20222
+
+      // title is a required field
+      $params['title'] = "Auto-generated ($type: {$this->partnerId})";
+      $params['saved_search_id'] = $savedSearch['id'];
+      $params['is_reserved'] = 1;
+      $api = civicrm_api3('Group', 'create', $params);
+    }
+
+    $this->groups[$type] = $api['id'];
   }
 
 }
