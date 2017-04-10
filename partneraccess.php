@@ -180,7 +180,7 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
  * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
  */
 function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relationship) {
-  if ($relationship->relationship_type_id !== CRM_Partneraccess_Config::singleton()->getEmploymentRelId()) {
+  if ($relationship->relationship_type_id !== CRM_Partneraccess_Config::singleton()->getEmploymentRelTypeId()) {
     return;
   }
 

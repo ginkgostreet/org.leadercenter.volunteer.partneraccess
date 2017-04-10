@@ -16,6 +16,12 @@ class CRM_Partneraccess_Config {
   private static $_singleton = NULL;
 
   /**
+   * @var string
+   *   An int-like string representing the ID of the employement relationship type.
+   */
+  private $employmentRelTypeId = NULL;
+
+  /**
    * This extension's custom group types, keyed by prefix.
    *
    * @see getGroupTypes().
@@ -28,7 +34,6 @@ class CRM_Partneraccess_Config {
    * @var string
    *   An int-like string representing the ID of the group which contains all
    *   partner-specific access groups.
-
    */
   private $parentGroupId = NULL;
 
@@ -65,6 +70,26 @@ class CRM_Partneraccess_Config {
       self::$_singleton = new CRM_Partneraccess_Config();
     }
     return self::$_singleton;
+  }
+
+  /**
+   * A simple getter.
+   *
+   * @see class member employmentRelId.
+   */
+  public function getEmploymentRelTypeId() {
+    if (!isset($this->employmentRelTypeId)) {
+      $this->employmentRelTypeId = civicrm_api3('RelationshipType', 'getvalue', array(
+        'contact_type_a' => 'Individual',
+        'contact_type_b' => 'Organization',
+        'is_active' => 1,
+        'is_reserved' => 1,
+        'name_a_b' => 'Employee of',
+        'name_b_a' => 'Employer of',
+        'return' => 'id',
+      ));
+    }
+    return $this->employmentRelTypeId;
   }
 
   /**
