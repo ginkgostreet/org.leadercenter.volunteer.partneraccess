@@ -194,8 +194,15 @@ function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relati
   }
 }
 
-function partneraccess_civicrm_container(\Symfony\Component\EventDispatcher\Event $container) {
-  foreach (array('civi.dao.postDelete', 'civi.dao.postInsert', 'civi.dao.postUpdate') as $event) {
-    $container->findDefinition('dispatcher')->addMethodCall('addListener', array($event, array('CRM_Partneraccess_GroupMembershipManager', 'processActivityEvent')));
-  }
+/**
+ * Implements hook_civicrm_container().
+ *
+ * Used to set up listeners for ActivityContact events.
+ *
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_container/
+ */
+function partneraccess_civicrm_container($container) {
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postInsert', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postUpdate', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postDelete', array('CRM_Partneraccess_Listener_ActivityContact', 'handleDelete')));
 }
