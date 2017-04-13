@@ -193,3 +193,9 @@ function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relati
     CRM_Partneraccess_GroupMembershipManager::add($individualId, 'varl_partner_access_static_staff', $partnerId);
   }
 }
+
+function partneraccess_civicrm_container(\Symfony\Component\EventDispatcher\Event $container) {
+  foreach (array('civi.dao.postDelete', 'civi.dao.postInsert', 'civi.dao.postUpdate') as $event) {
+    $container->findDefinition('dispatcher')->addMethodCall('addListener', array($event, array('CRM_Partneraccess_GroupMembershipManager', 'processActivityEvent')));
+  }
+}
