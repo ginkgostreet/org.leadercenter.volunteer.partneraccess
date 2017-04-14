@@ -6,20 +6,37 @@
 class CRM_Partneraccess_Listener_ActivityContact {
 
   private static $activityRecordTypes = array();
+  private static $volGroupType = 'varl_partner_access_static_volunteer';
   private static $targetRecordTypes = array('Activity Assignees', 'Activity Targets');
 
   /**
    * @param CRM_Activity_DAO_ActivityContact $activityContact
    * @return array
    * @throws CiviCRM_API3_Exception
+   *   Throws exception if not a volunteer activity or if actvity not found.
    */
-  private static function fetchActivity(CRM_Activity_DAO_ActivityContact $activityContact) {
+  private static function fetchVolunteerActivity(CRM_Activity_DAO_ActivityContact $activityContact) {
     return civicrm_api3('Activity', 'getsingle', array(
       'activity_type_id' => 'Volunteer',
       'id' => $activityContact->id,
       'api.ActivityContact.get' => array(
         'record_type_id' => array('IN' => self::$targetRecordTypes),
       ),
+    ));
+  }
+
+  /**
+   * @param mixed $contactId
+   * @param mixed $partnerId
+   * @return boolean
+   *   Returns true if contact is the volunteer for any activity for which the
+   *   partner is the target/beneficiary, else false.
+   */
+  private static function hasVolunteerActivityWith($contactId, $partnerId) {
+    return (boolean) civicrm_api3('Activity', 'getcount', array(
+      'activity_type_id' => 'Volunteer',
+      'assignee_contact_id' => $contactId,
+      'target_contact_id' => $partnerId,
     ));
   }
 
@@ -65,8 +82,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
       }
 
       // If empty after looping through all the activity contacts, it means we
-      // don't have both contacts for the volunteer activity. No worries: This
-      // handler will run again when the other contact is inserted.
+      // don't have both contacts for the volunteer activity.
       if (empty($contactIds[$recordTypeString])) {
         return $result;
       }
@@ -87,7 +103,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
   public static function handleUpsert(\Symfony\Component\EventDispatcher\Event $event) {
     if (isset($event->object)) {
       try {
-        $activity = self::fetchActivity($event->object);
+        $activity = self::fetchVolunteerActivity($event->object);
       }
       catch (Exception $ex) {
         // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
@@ -96,7 +112,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
 
       foreach (self::keyVolunteersByPartner($activity) as $partnerId => $contactIds) {
         foreach ($contactIds as $contactId) {
-          self::add($contactId, 'varl_partner_access_static_volunteer', $partnerId);
+          CRM_Partneraccess_GroupMembershipManager::add($contactId, self::$volGroupType, $partnerId);
         }
       }
     }
@@ -110,6 +126,21 @@ class CRM_Partneraccess_Listener_ActivityContact {
    */
   public static function handleDelete(\Symfony\Component\EventDispatcher\Event $event) {
     if (isset($event->object)) {
+      try {
+        $activity = self::fetchVolunteerActivity($event->object);
+      }
+      catch (Exception $ex) {
+        // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
+        return;
+      }
+
+      foreach (self::keyVolunteersByPartner($activity) as $partnerId => $contactIds) {
+        foreach ($contactIds as $contactId) {
+          if (!self::hasVolunteerActivityWith($contactId, $partnerId)) {
+            CRM_Partneraccess_GroupMembershipManager::remove($contactId, self::$volGroupType, $partnerId);
+          }
+        }
+      }
     }
   }
 
