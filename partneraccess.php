@@ -206,3 +206,16 @@ function partneraccess_civicrm_container($container) {
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postUpdate', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postDelete', array('CRM_Partneraccess_Listener_ActivityContact', 'handleDelete')));
 }
+
+/**
+ * This is a backport of sorts from PHP 7. It allows us to treat recoverable
+ * errors as exceptions.
+ */
+function _partneraccess_errorHandler($errno, $errstr, $errfile, $errline) {
+  if ($errno === E_RECOVERABLE_ERROR) {
+    throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
+  }
+  return false;
+}
+
+set_error_handler('_partneraccess_errorHandler');
