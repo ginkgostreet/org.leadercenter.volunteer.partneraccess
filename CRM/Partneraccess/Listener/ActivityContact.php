@@ -18,7 +18,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
   private static function fetchVolunteerActivity(CRM_Activity_DAO_ActivityContact $activityContact) {
     return civicrm_api3('Activity', 'getsingle', array(
       'activity_type_id' => 'Volunteer',
-      'id' => $activityContact->id,
+      'id' => $activityContact->activity_id,
       'api.ActivityContact.get' => array(
         'record_type_id' => array('IN' => self::$targetRecordTypes),
       ),
@@ -76,7 +76,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
       $recordTypeNumeric = $recordTypeOptions[$recordTypeString];
 
       foreach ($activity['api.ActivityContact.get']['values'] as $activityContact) {
-        if ($activityContact['record_type_id'] === $recordTypeNumeric) {
+        if ($activityContact['record_type_id'] == $recordTypeNumeric) {
           $contactIds[$recordTypeString][] = $activityContact['contact_id'];
         }
       }
