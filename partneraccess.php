@@ -204,7 +204,7 @@ function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relati
 function partneraccess_civicrm_container($container) {
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postInsert', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postUpdate', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
-  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postDelete', array('CRM_Partneraccess_Listener_ActivityContact', 'handleDelete')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_ActivityContact', 'handleDelete')));
 }
 
 /**

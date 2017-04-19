@@ -28,16 +28,25 @@ class CRM_Partneraccess_Listener_ActivityContact {
   /**
    * @param mixed $contactId
    * @param mixed $partnerId
+   * @param mixed $excludeActivityId
+   *   Optional. If provided, the activity specified by ID will not count
+   *   toward the volunteer's activity total with the specified partner. Useful
+   *   when invoked in the context of a pre-delete; without the ability to
+   *   exclude the about-to-be-deleted activity, the result would always be true.
    * @return boolean
    *   Returns true if contact is the volunteer for any activity for which the
    *   partner is the target/beneficiary, else false.
    */
-  private static function hasVolunteerActivityWith($contactId, $partnerId) {
-    return (boolean) civicrm_api3('Activity', 'getcount', array(
+  private static function hasVolunteerActivityWith($contactId, $partnerId, $excludeActivityId = NULL) {
+    $params = array(
       'activity_type_id' => 'Volunteer',
       'assignee_contact_id' => $contactId,
       'target_contact_id' => $partnerId,
-    ));
+    );
+    if (!empty($excludeActivityId)) {
+      $params['id'] = array('!=' => $excludeActivityId);
+    }
+    return (boolean) civicrm_api3('Activity', 'getcount', $params);
   }
 
   /**
@@ -136,7 +145,7 @@ class CRM_Partneraccess_Listener_ActivityContact {
 
       foreach (self::keyVolunteersByPartner($activity) as $partnerId => $contactIds) {
         foreach ($contactIds as $contactId) {
-          if (!self::hasVolunteerActivityWith($contactId, $partnerId)) {
+          if (!self::hasVolunteerActivityWith($contactId, $partnerId, $activity['id'])) {
             CRM_Partneraccess_GroupMembershipManager::remove($contactId, self::$volGroupType, $partnerId);
           }
         }
