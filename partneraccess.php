@@ -202,10 +202,11 @@ function _partneraccess_civicrm_post_Relationship($op, $relationshipId, &$relati
  * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_container/
  */
 function partneraccess_civicrm_container($container) {
-  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postInsert', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
-  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postUpdate', array('CRM_Partneraccess_Listener_ActivityContact', 'handleUpsert')));
-  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_ActivityContact', 'handlePreDelete')));
-  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('partnerAccess.deferredEvent', array('CRM_Partneraccess_Listener_ActivityContact', 'handlePostDelete')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postInsert', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handleUpsert')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.postUpdate', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handleUpsert')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handlePreDelete')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_Activity_Activity', 'handlePreDelete')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('partnerAccess.deferredEvent', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handleDelete')));
 }
 
 /**
