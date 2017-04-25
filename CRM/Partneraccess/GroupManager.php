@@ -54,11 +54,10 @@ class CRM_Partneraccess_GroupManager {
    * First checks the object cache, which assumes that only one group of each
    * type can exist per partner. Failing that queries the API.
    *
-   * @param array $group
+   * @param string $type
    * @return boolean
    */
-  public function groupExists(array $group) {
-    $type = CRM_Utils_Array::value('group_type', $group);
+  public function groupExists($type) {
     if (!empty($this->groups[$type])) {
       return TRUE;
     }
@@ -77,7 +76,7 @@ class CRM_Partneraccess_GroupManager {
         'parents' => $this->parentGroupId,
       );
 
-      if ($this->groupExists($params)) {
+      if ($this->groupExists($type)) {
         $params['api.Group.create'] = array(
           'is_active' => 1,
         );
@@ -120,7 +119,7 @@ class CRM_Partneraccess_GroupManager {
       'parents' => $this->parentGroupId,
     );
 
-    if ($this->groupExists($params)) {
+    if ($this->groupExists($type)) {
       $params['api.Group.create'] = array(
         'is_active' => 1,
       );
