@@ -49,6 +49,34 @@ class CRM_Partneraccess_GroupManager {
   }
 
   /**
+   * @param string $type
+   *   @see option group group_type for valid values.
+   * @return mixed
+   *   Group ID or NULL.
+   */
+  public function getGroupIdByType($type) {
+    $result = CRM_Utils_Array::value($type, $this->groups);
+    if (empty($result)) {
+      try {
+        $result = civicrm_api3('Group', 'getvalue', array(
+          $this->customFieldName => $this->partnerId,
+          'group_type' => $type,
+          'return' => 'id,'
+        ));
+      }
+      catch (Exception $e) {
+        // nothing to do here but allow the function to return NULL
+      }
+    }
+
+    return $result;
+  }
+
+  public function getPartnerId() {
+    return $this->partnerId;
+  }
+
+  /**
    * Checks for the existence of a partner group.
    *
    * First checks the object cache, which assumes that only one group of each

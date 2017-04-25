@@ -167,6 +167,8 @@ function _partneraccess_civicrm_post_GroupContact($op, $groupId, &$contactIds) {
   foreach ($contactIds as $cid) {
     $groupManager = new CRM_Partneraccess_GroupManager($cid);
     $groupManager->$action();
+    $aclManager = new CRM_Partneraccess_AclManager($groupManager);
+    $aclManager->$action();
   }
 }
 
