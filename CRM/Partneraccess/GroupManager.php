@@ -90,7 +90,11 @@ class CRM_Partneraccess_GroupManager {
       return TRUE;
     }
 
-    return (bool) civicrm_api3('Group', 'getcount', $group);
+    return (bool) civicrm_api3('Group', 'getcount', array(
+      $this->customFieldName => $this->partnerId,
+      'group_type' => $type,
+      'parents' => $this->parentGroupId,
+    ));
   }
 
   /**
