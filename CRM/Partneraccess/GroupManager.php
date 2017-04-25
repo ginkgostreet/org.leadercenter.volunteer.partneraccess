@@ -66,13 +66,25 @@ class CRM_Partneraccess_GroupManager {
   }
 
   /**
+   * A simple encapsulation of logic about which group types are to be used as
+   * ACL Actors and should thus also be flagged as group type 'Access Control.'
+   *
+   * @param string $type
+   * @return boolean
+   */
+  public static function groupTypeIsAclActor($type) {
+    return $type === 'varl_partner_access_static_staff';
+  }
+
+  /**
    * Creates each partner group if it doesn't already exist, else enables it.
    */
   public function activate() {
     foreach ($this->config->getGroupTypes('static') as $type) {
+      $typeParam = self::groupTypeIsAclActor($type) ? array($type, 'Access Control') : array($type);
       $params = array(
         $this->customFieldName => $this->partnerId,
-        'group_type' => $type,
+        'group_type' => array('IN' => $typeParam),
         'parents' => $this->parentGroupId,
       );
 
