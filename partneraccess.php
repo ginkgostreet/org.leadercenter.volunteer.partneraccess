@@ -209,6 +209,7 @@ function partneraccess_civicrm_container($container) {
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handlePreDelete')));
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('civi.dao.preDelete', array('CRM_Partneraccess_Listener_Activity_Activity', 'handlePreDelete')));
   $container->findDefinition('dispatcher')->addMethodCall('addListener', array('partnerAccess.deferredEvent', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handleDelete')));
+  $container->findDefinition('dispatcher')->addMethodCall('addListener', array('partnerAccess.retroactivate', array('CRM_Partneraccess_Listener_Activity_ActivityContact', 'handleUpsert')));
 }
 
 /**
