@@ -155,6 +155,9 @@ class CRM_Partneraccess_GroupManager {
       else {
         // title is a required field
         $params['title'] = "Auto-generated ($type: {$this->partnerId})";
+        // create should not specify an operator, only group types
+        $params['group_type'] = $params['group_type']['IN'];
+
         $api = civicrm_api3('Group', 'create', $params);
       }
 
