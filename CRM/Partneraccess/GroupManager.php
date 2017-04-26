@@ -86,15 +86,41 @@ class CRM_Partneraccess_GroupManager {
    * @return boolean
    */
   public function groupExists($type) {
+    $result = FALSE;
     if (!empty($this->groups[$type])) {
-      return TRUE;
+      $result = TRUE;
     }
 
-    return (bool) civicrm_api3('Group', 'getcount', array(
-      $this->customFieldName => $this->partnerId,
-      'group_type' => $type,
-      'parents' => $this->parentGroupId,
-    ));
+    if (!$result) {
+      $params = array(
+        $this->customFieldName => $this->partnerId,
+        'parents' => $this->parentGroupId,
+      );
+
+      // Gross, gross hack to deal with the fact that api.Group.get excludes
+      // records where the group_type is multivalue when the group_type param
+      // is specified.
+      if (self::groupTypeIsAclActor($type)) {
+        $staffGroupTypeValue = civicrm_api3('OptionValue', 'getvalue', array(
+          'return' => 'value',
+          'option_group_id' => 'group_type',
+          'name' => 'varl_partner_access_static_staff',
+        ));
+
+        $api = civicrm_api3('Group', 'get', $params);
+        foreach ($api['values'] as $item) {
+          if (in_array($staffGroupTypeValue, $item['group_type'])) {
+            $result = TRUE;
+            break;
+          }
+        }
+      }
+      else {
+        $params['group_type'] = $type;
+        $result = (bool) civicrm_api3('Group', 'getcount', $params);
+      }
+    }
+    return $result;
   }
 
   /**
