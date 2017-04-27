@@ -53,6 +53,14 @@ class CRM_Partneraccess_Config {
   private $partnerGroupId = NULL;
 
   /**
+   * @var string
+   *   An int-like string representing the identifier (the value, in this case,
+   *   since group types are modeled as an optionGroup) of the group type which
+   *   represents an organization's staff.
+   */
+  private $staffGroupTypeValue = NULL;
+
+  /**
    * The point of declaring this is to make it private, so that only the
    * singleton method can be used to instantiate it.
    */
@@ -128,6 +136,26 @@ class CRM_Partneraccess_Config {
       $result = CRM_Utils_Array::value($prefix, $this->groupTypes, array());
     }
     return $result;
+  }
+
+  /**
+   * A simple getter.
+   *
+   * TODO: The getGroupTypes method could probably have been modified to serve
+   * this purpose, but I'm loathe to do more refactoring than I need to at this
+   * time.
+   *
+   * @see class member staffGroupTypeValue.
+   */
+  public function getStaffGroupTypeValue() {
+    if (!isset($this->staffGroupTypeValue)) {
+      $this->staffGroupTypeValue = civicrm_api3('OptionValue', 'getvalue', array(
+        'return' => 'value',
+        'option_group_id' => 'group_type',
+        'name' => 'varl_partner_access_static_staff',
+      ));
+    }
+    return $this->staffGroupTypeValue;
   }
 
   /**
