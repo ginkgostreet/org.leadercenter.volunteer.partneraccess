@@ -57,16 +57,12 @@ class CRM_Partneraccess_GroupManager {
   public function getGroupIdByType($type) {
     $result = CRM_Utils_Array::value($type, $this->groups);
     if (empty($result)) {
-      try {
-        $result = civicrm_api3('Group', 'getvalue', array(
-          $this->customFieldName => $this->partnerId,
-          'group_type' => $type,
-          'return' => 'id,'
-        ));
-      }
-      catch (Exception $e) {
-        // nothing to do here but allow the function to return NULL
-      }
+      $params = array(
+        $this->customFieldName => $this->partnerId,
+        'group_type' => $type,
+      );
+      $fetch = CRM_Partneraccess_Polyfill::apiGroupGet($params);
+      $result = CRM_Utils_Array::value('id', $fetch);
     }
 
     return $result;
