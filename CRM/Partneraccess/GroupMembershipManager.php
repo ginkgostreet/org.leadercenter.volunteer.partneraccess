@@ -75,18 +75,13 @@ class CRM_Partneraccess_GroupMembershipManager {
     $customFieldName = $config->getPartnerCustomFieldApiName();
     $parentGroupId = $config->getParentGroupId();
 
-    try {
-      $result = civicrm_api3('Group', 'getsingle', array(
-        $customFieldName => $partnerId,
-        'group_type' => $groupType,
-        'parents' => $parentGroupId,
-      ));
-    }
-    catch (Exception $e) {
-      $result = array();
-    }
-
-    return $result;
+    $fetchParams = array(
+      $customFieldName => $partnerId,
+      'group_type' => $groupType,
+      'parents' => $parentGroupId,
+    );
+    $fetch = CRM_Partneraccess_Polyfill::apiGroupGet($fetchParams);
+    return ($fetch['count'] == 1) ? $fetch['values'] : array();
   }
 
 }
