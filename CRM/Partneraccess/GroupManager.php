@@ -92,29 +92,40 @@ class CRM_Partneraccess_GroupManager {
    */
   public function activate() {
     foreach ($this->config->getGroupTypes('static') as $type) {
-      $typeParam = self::groupTypeIsAclActor($type) ? array($type, 'Access Control') : array($type);
-      $params = array(
-        $this->customFieldName => $this->partnerId,
-        'group_type' => $typeParam,
-        'is_active' => 1,
-        'parents' => $this->parentGroupId,
-      );
-
-      $groupId = $this->getGroupIdByType($type);
-      if ($groupId) {
-        // force an update
-        $params['id'] = $groupId;
-      }
-      else {
-        // title is a required field
-        $params['title'] = "Auto-generated ($type: {$this->partnerId})";
-      }
-      $api = civicrm_api3('Group', 'create', $params);
-
-      $this->groups[$type] = $api['id'];
+      $this->activateSingle($type);
     }
 
     $this->activateSmartGroup();
+  }
+
+  /**
+   * Creates the partner group specified by type if it doesn't already exist,
+   * else enables it.
+   *
+   * @param string $type
+   *   @see option group group_type for valid values.
+   */
+  private function activateSingle($type) {
+    $typeParam = self::groupTypeIsAclActor($type) ? array($type, 'Access Control') : array($type);
+    $params = array(
+      $this->customFieldName => $this->partnerId,
+      'group_type' => $typeParam,
+      'is_active' => 1,
+      'parents' => $this->parentGroupId,
+    );
+
+    $groupId = $this->getGroupIdByType($type);
+    if ($groupId) {
+      // force an update
+      $params['id'] = $groupId;
+    }
+    else {
+      // title is a required field
+      $params['title'] = "Auto-generated ($type: {$this->partnerId})";
+    }
+    $api = civicrm_api3('Group', 'create', $params);
+
+    $this->groups[$type] = $api['id'];
   }
 
   /**
@@ -132,23 +143,17 @@ class CRM_Partneraccess_GroupManager {
 
   /**
    * If the smart group exists, enables it. Otherwise, creates a saved search,
-   * creates a new group, and associates the two.
+   * a new group, and an association between the two.
    */
   private function activateSmartGroup() {
     $type = 'varl_partner_access_smart_emailable';
-    $params = array(
-      $this->customFieldName => $this->partnerId,
-      'group_type' => $type,
-      'parents' => $this->parentGroupId,
-    );
 
-    if ($this->groupExists($type)) {
-      $params['api.Group.create'] = array(
-        'is_active' => 1,
-      );
-      $api = civicrm_api3('Group', 'get', $params);
-    }
-    else {
+    // check for existence before activating it
+    $exists = $this->getGroupIdByType($type);
+    $this->activateSingle($type);
+
+    if (!$exists) {
+      // TODO: this CustomSearch lookup belongs in the Config class where it can be cached
       $customSearchId = civicrm_api3('CustomSearch', 'getvalue', array(
         'name' => 'CRM_Contact_Form_Search_Custom_Group',
         'return' => 'value',
@@ -217,14 +222,15 @@ class CRM_Partneraccess_GroupManager {
       $bao->save();
       // end workaround for CRM-20222
 
-      // title is a required field
-      $params['title'] = "Auto-generated ($type: {$this->partnerId})";
-      $params['saved_search_id'] = $savedSearch['id'];
-      $params['is_reserved'] = 1;
-      $api = civicrm_api3('Group', 'create', $params);
+      // Add the saved search ID to the group created earlier.
+      civicrm_api3('Group', 'create', array(
+        'id' => $this->getGroupIdByType($type),
+        // Hmm, this is inconsistent with the other groups we create. Can't think
+        // of a reason the group ought to be reserved, but conservatively leaving it.
+        'is_reserved' => 1,
+        'saved_search_id' => $savedSearch['id'],
+      ));
     }
-
-    $this->groups[$type] = $api['id'];
   }
 
 }
