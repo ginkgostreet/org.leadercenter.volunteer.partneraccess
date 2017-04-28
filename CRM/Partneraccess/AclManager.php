@@ -38,7 +38,6 @@ class CRM_Partneraccess_AclManager {
    * rule and its dependencies.
    */
   public function deactivate() {
-    $this->toggleRole(FALSE);
     $this->toggleActor(FALSE);
     $this->toggleRule(FALSE);
   }
