@@ -36,6 +36,7 @@ function civicrm_api3_partneraccess_retroactivate($params) {
   $activityContacts = civicrm_api3('ActivityContact', 'get', array(
     'activity_id.activity_type_id' => 'Volunteer',
     'contact_id' => $params['partner_id'],
+    'options' => array('limit' => 0),
     // we only need one half of the relationship; the rest is looked up by the event handler
     'record_type_id' => 'Activity Targets',
     'return' => array('id'),
