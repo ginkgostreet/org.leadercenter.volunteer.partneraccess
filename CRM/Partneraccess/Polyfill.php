@@ -43,6 +43,13 @@ class CRM_Partneraccess_Polyfill {
         unset($result['values'][$key]);
       }
     }
+    // account for any items we may have removed from the result
+    $result['count'] = count($result['values']);
+
+    // preserve core behavior of making the ID top-level if only one result
+    if ($result['count'] == 1) {
+      $result['id'] = current($result['values'])['id'];
+    }
 
     return $result;
   }
