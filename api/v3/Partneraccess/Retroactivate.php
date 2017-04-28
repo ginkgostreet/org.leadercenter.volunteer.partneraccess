@@ -38,12 +38,12 @@ function civicrm_api3_partneraccess_retroactivate($params) {
     'contact_id' => $params['partner_id'],
     // we only need one half of the relationship; the rest is looked up by the event handler
     'record_type_id' => 'Activity Targets',
-    'return' => array('activity_id'),
+    'return' => array('id'),
   ));
   foreach ($activityContacts['values'] as $ac) {
     // the event handler expects a DAO object, so though it's not exactly efficient,
     // we comply
-    $activityContact = CRM_Activity_BAO_ActivityContact::findById($ac['activity_id']);
+    $activityContact = CRM_Activity_BAO_ActivityContact::findById($ac['id']);
     $event = new \Civi\Core\DAO\Event\PostUpdate($activityContact);
     \Civi::service('dispatcher')->dispatch('partnerAccess.retroactivate', $event);
   }
