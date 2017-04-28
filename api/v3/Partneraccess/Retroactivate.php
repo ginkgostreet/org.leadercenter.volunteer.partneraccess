@@ -1,5 +1,14 @@
 <?php
 
+function _civicrm_api3_partneraccess_retroactivate_spec(&$params) {
+  $params['partner_id'] = array(
+    'api.required' => 1,
+    'description' => 'The contact ID of the partner whose groups and ACLs to
+       activate/populate.',
+    'type' => CRM_Utils_Type::T_INT,
+  );
+}
+
 /**
  * @param array $params
  * @return array
@@ -7,26 +16,16 @@
  * @throws API_Exception
  */
 function civicrm_api3_partneraccess_retroactivate($params) {
-  $config = CRM_Partneraccess_Config::singleton();
-
-  $groupContacts = civicrm_api3('GroupContact', 'get', array(
-    'return' => array('contact_id'),
-    'status' => "Added",
-    'group_id' => $config->getPartnerGroupId(),
-    'options' => array('limit' => 0),
-  ));
-  $partners = array_column($groupContacts['values'], 'contact_id');
-  foreach ($partners as $contactId) {
-    $groupManager = new CRM_Partneraccess_GroupManager($contactId);
-    $groupManager->activate();
-    $aclManager = new CRM_Partneraccess_AclManager($groupManager);
-    $aclManager->activate();
-  }
+  $groupManager = new CRM_Partneraccess_GroupManager($params['partner_id']);
+  $groupManager->activate();
+  $aclManager = new CRM_Partneraccess_AclManager($groupManager);
+  $aclManager->activate();
 
   $relationships = civicrm_api3('Relationship', 'get', array(
-    'relationship_type_id' => $config->getEmploymentRelTypeId(),
+    'relationship_type_id' => CRM_Partneraccess_Config::singleton()->getEmploymentRelTypeId(),
     'options' => array('limit' => 0),
-    'contact_id_b' => array('IN' => $partners),
+    'is_active' => 1,
+    'contact_id_b' => $params['partner_id'],
   ));
   foreach ($relationships['values'] as $r) {
     if ($r['is_active']) {
@@ -36,8 +35,9 @@ function civicrm_api3_partneraccess_retroactivate($params) {
 
   $activityContacts = civicrm_api3('ActivityContact', 'get', array(
     'activity_id.activity_type_id' => 'Volunteer',
+    'contact_id' => $params['partner_id'],
     // we only need one half of the relationship; the rest is looked up by the event handler
-    'record_type_id' => 'Activity Assignees',
+    'record_type_id' => 'Activity Targets',
     'return' => array('activity_id'),
   ));
   foreach ($activityContacts['values'] as $ac) {
@@ -48,5 +48,5 @@ function civicrm_api3_partneraccess_retroactivate($params) {
     \Civi::service('dispatcher')->dispatch('partnerAccess.retroactivate', $event);
   }
 
-  return civicrm_api3_create_success(ts('Processed %1 partners, %2 partner staffers, and %3 activities', array(1 => $groupContacts['count'], 2 => $relationships['count'], 3 => $activityContacts['count'], 'domain' => 'org.leadercenter.volunteer.partneraccess')));
+  return civicrm_api3_create_success(ts('Processed %1 partner staffers and %2 activities', array(1 => $relationships['count'], 2 => $activityContacts['count'], 'domain' => 'org.leadercenter.volunteer.partneraccess')));
 }
