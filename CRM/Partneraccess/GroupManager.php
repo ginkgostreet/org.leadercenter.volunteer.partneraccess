@@ -49,16 +49,20 @@ class CRM_Partneraccess_GroupManager {
   }
 
   /**
+   * First checks the object cache. Failing that queries the API. Assumes that
+   * only one group of each type can exist per partner.
+   *
    * @param string $type
    *   @see option group group_type for valid values.
    * @return mixed
-   *   Group ID or NULL.
+   *   Int-like string ID if found; NULL if doesn't exist.
    */
   public function getGroupIdByType($type) {
     $result = CRM_Utils_Array::value($type, $this->groups);
     if (empty($result)) {
       $params = array(
         $this->customFieldName => $this->partnerId,
+        'parents' => $this->parentGroupId,
         'group_type' => $type,
       );
       $fetch = CRM_Partneraccess_Polyfill::apiGroupGet($params);
@@ -70,35 +74,6 @@ class CRM_Partneraccess_GroupManager {
 
   public function getPartnerId() {
     return $this->partnerId;
-  }
-
-  /**
-   * Checks for the existence of a partner group.
-   *
-   * First checks the object cache, which assumes that only one group of each
-   * type can exist per partner. Failing that queries the API.
-   *
-   * @param string $type
-   * @return boolean
-   */
-  public function groupExists($type) {
-    $exists = FALSE;
-    if (!empty($this->groups[$type])) {
-      $exists = TRUE;
-    }
-
-    if (!$exists) {
-      $params = array(
-        $this->customFieldName => $this->partnerId,
-        'parents' => $this->parentGroupId,
-        'group_type' => $type,
-      );
-
-      $fetch = CRM_Partneraccess_Polyfill::apiGroupGet($params);
-      $exists = (bool) $fetch['count'];
-    }
-
-    return $exists;
   }
 
   /**
@@ -120,24 +95,21 @@ class CRM_Partneraccess_GroupManager {
       $typeParam = self::groupTypeIsAclActor($type) ? array($type, 'Access Control') : array($type);
       $params = array(
         $this->customFieldName => $this->partnerId,
-        'group_type' => array('IN' => $typeParam),
+        'group_type' => $typeParam,
+        'is_active' => 1,
         'parents' => $this->parentGroupId,
       );
 
-      if ($this->groupExists($type)) {
-        $params['api.Group.create'] = array(
-          'is_active' => 1,
-        );
-        $api = civicrm_api3('Group', 'get', $params);
+      $groupId = $this->getGroupIdByType($type);
+      if ($groupId) {
+        // force an update
+        $params['id'] = $groupId;
       }
       else {
         // title is a required field
         $params['title'] = "Auto-generated ($type: {$this->partnerId})";
-        // create should not specify an operator, only group types
-        $params['group_type'] = $params['group_type']['IN'];
-
-        $api = civicrm_api3('Group', 'create', $params);
       }
+      $api = civicrm_api3('Group', 'create', $params);
 
       $this->groups[$type] = $api['id'];
     }
@@ -149,13 +121,13 @@ class CRM_Partneraccess_GroupManager {
    * Disables each partner group.
    */
   public function deactivate() {
-    civicrm_api3('Group', 'get', array(
-      $this->customFieldName => $this->partnerId,
-      'group_type' => array('IN' => $this->config->getGroupTypes()),
-      'api.Group.create' => array(
+    foreach ($this->config->getGroupTypes() as $type) {
+      $groupId = $this->getGroupIdByType($type);
+      civicrm_api3('Group', 'create', array(
+        'id' => $groupId,
         'is_active' => 0,
-      ),
-    ));
+      ));
+    }
   }
 
   /**
