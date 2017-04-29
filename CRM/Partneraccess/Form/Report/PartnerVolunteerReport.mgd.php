@@ -11,8 +11,8 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'label' => 'PartnerVolunteerReport',
-      'description' => 'PartnerVolunteerReport (org.leadercenter.volunteer.partneraccess)',
+      'label' => 'Partner Volunteer Report',
+      'description' => 'Displays volunteer activities, filtered by which contacts the currently logged in user has permission to view.',
       'class_name' => 'CRM_Partneraccess_Form_Report_PartnerVolunteerReport',
       'report_url' => 'partner/volunteer',
       'component' => '',
