@@ -45,6 +45,9 @@ class CRM_Partneraccess_Polyfill {
     }
     // account for any items we may have removed from the result
     $result['count'] = count($result['values']);
+    if (CRM_Utils_Array::value('sequential', $params)) {
+      $result['values'] = array_values($result['values']);
+    }
 
     // preserve core behavior of making the ID top-level if only one result
     if ($result['count'] == 1) {

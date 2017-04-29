@@ -79,9 +79,10 @@ class CRM_Partneraccess_GroupMembershipManager {
       $customFieldName => $partnerId,
       'group_type' => $groupType,
       'parents' => $parentGroupId,
+      'sequential' => 1,
     );
     $fetch = CRM_Partneraccess_Polyfill::apiGroupGet($fetchParams);
-    return ($fetch['count'] == 1) ? $fetch['values'] : array();
+    return ($fetch['count'] == 1) ? $fetch['values'][0] : array();
   }
 
 }
