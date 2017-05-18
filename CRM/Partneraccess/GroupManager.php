@@ -41,6 +41,13 @@ class CRM_Partneraccess_GroupManager {
    */
   private $partnerId;
 
+  /**
+   * @var array
+   *   A registry of saved search IDs associated with this partner, keyed by group
+   *   type. Note: this member is populated only in a create (not edit) workflow.
+   */
+  private $savedSearches = array();
+
   public function __construct($partnerId) {
     $this->partnerId = $partnerId;
     $this->config = CRM_Partneraccess_Config::singleton();
@@ -122,6 +129,17 @@ class CRM_Partneraccess_GroupManager {
     else {
       // title is a required field
       $params['title'] = "Auto-generated ($type: {$this->partnerId})";
+
+      // for creates only, make the group "smart" by passing in the saved search param if one exists
+      $savedSearchId = CRM_Utils_Array::value($type, $this->savedSearches);
+      if ($savedSearchId) {
+        // Hmm, this is inconsistent with the other groups we create. Can't think
+        // of a reason the group ought to be reserved, but conservatively leaving it.
+        $params['is_reserved'] = 1;
+        // VARL-265: passing the saved_search_id on initial create populates the
+        // group's where_clause, select_tables, and where_tables fields properly.
+        $params['saved_search_id'] = $savedSearchId;
+      }
     }
     $api = civicrm_api3('Group', 'create', $params);
 
@@ -147,90 +165,97 @@ class CRM_Partneraccess_GroupManager {
    */
   private function activateSmartGroup() {
     $type = 'varl_partner_access_smart_emailable';
-
-    // check for existence before activating it
     $exists = $this->getGroupIdByType($type);
-    $this->activateSingle($type);
 
+    // VARL-265: if the group doesn't exist at all, we must first create the saved search
     if (!$exists) {
-      // TODO: this CustomSearch lookup belongs in the Config class where it can be cached
-      $customSearchId = civicrm_api3('CustomSearch', 'getvalue', array(
-        'name' => 'CRM_Contact_Form_Search_Custom_Group',
-        'return' => 'value',
-      ));
-      $savedSearch = civicrm_api3('SavedSearch', 'create', array(
-        'form_values' => array(
-          array(
-            'csid', // field name
-            '=', // operator
-            $customSearchId, // "sql filter syntax"
-            0, // always 0
-            0, // always 0
-          ),
-          array(
-            'entryURL',
-            '=',
-            CIVICRM_UF_BASEURL . "/civicrm/contact/search/custom?csid={$customSearchId}&reset=1",
-            0,
-            0,
-          ),
-          array(
-            'includeGroups',
-            'IN',
-            array(
-              $this->groups['varl_partner_access_static_volunteer'],
-              $this->groups['varl_partner_access_static_optin'],
-            ),
-            0,
-            0,
-          ),
-          array(
-            'excludeGroups',
-            'IN',
-            array($this->groups['varl_partner_access_static_optout']),
-            0,
-            0,
-          ),
-          array(
-            'andOr',
-            '=',
-            1,
-            0,
-            0,
-          ),
-          array(
-            'customSearchID',
-            '=',
-            $customSearchId,
-            0,
-            0,
-          ),
-          array(
-            'customSearchClass',
-            '=',
-            'CRM_Contact_Form_Search_Custom_Group',
-            0,
-            0,
-          ),
-        ),
-        'search_custom_id' => $customSearchId,
-      ));
-
-      // workaround for CRM-20222
-      $bao = CRM_Contact_BAO_SavedSearch::findById($savedSearch['id']);
-      $bao->search_custom_id = $customSearchId;
-      $bao->save();
-      // end workaround for CRM-20222
-
-      // Add the saved search ID to the group created earlier.
-      civicrm_api3('Group', 'create', array(
-        'id' => $this->getGroupIdByType($type),
-        // Hmm, this is inconsistent with the other groups we create. Can't think
-        // of a reason the group ought to be reserved, but conservatively leaving it.
-        'is_reserved' => 1,
-        'saved_search_id' => $savedSearch['id'],
-      ));
+      $this->savedSearches[$type] = $this->createSavedSearch();
     }
+
+    $this->activateSingle($type);
+  }
+
+  /**
+   * Creates a saved search.
+   *
+   * The search is an include/exclude for contacts in the volunteer and optin
+   * but not the optout group. Does not take responsibility for associating the
+   * search with a group.
+   *
+   * @return string
+   *   The ID of the saved search that was just created.
+   */
+  private function createSavedSearch() {
+    // TODO: this CustomSearch lookup belongs in the Config class where it can be cached
+    $customSearchId = civicrm_api3('CustomSearch', 'getvalue', array(
+      'name' => 'CRM_Contact_Form_Search_Custom_Group',
+      'return' => 'value',
+    ));
+    $savedSearch = civicrm_api3('SavedSearch', 'create', array(
+      'form_values' => array(
+        array(
+          'csid', // field name
+          '=', // operator
+          $customSearchId, // "sql filter syntax"
+          0, // always 0
+          0, // always 0
+        ),
+        array(
+          'entryURL',
+          '=',
+          CIVICRM_UF_BASEURL . "/civicrm/contact/search/custom?csid={$customSearchId}&reset=1",
+          0,
+          0,
+        ),
+        array(
+          'includeGroups',
+          'IN',
+          array(
+            $this->groups['varl_partner_access_static_volunteer'],
+            $this->groups['varl_partner_access_static_optin'],
+          ),
+          0,
+          0,
+        ),
+        array(
+          'excludeGroups',
+          'IN',
+          array($this->groups['varl_partner_access_static_optout']),
+          0,
+          0,
+        ),
+        array(
+          'andOr',
+          '=',
+          1,
+          0,
+          0,
+        ),
+        array(
+          'customSearchID',
+          '=',
+          $customSearchId,
+          0,
+          0,
+        ),
+        array(
+          'customSearchClass',
+          '=',
+          'CRM_Contact_Form_Search_Custom_Group',
+          0,
+          0,
+        ),
+      ),
+      'search_custom_id' => $customSearchId,
+    ));
+
+    // workaround for CRM-20222
+    $bao = CRM_Contact_BAO_SavedSearch::findById($savedSearch['id']);
+    $bao->search_custom_id = $customSearchId;
+    $bao->save();
+    // end workaround for CRM-20222
+
+    return $savedSearch['id'];
   }
 
 }
