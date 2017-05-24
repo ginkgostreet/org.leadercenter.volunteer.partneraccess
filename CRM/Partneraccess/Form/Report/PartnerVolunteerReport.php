@@ -48,4 +48,19 @@ class CRM_Partneraccess_Form_Report_PartnerVolunteerReport extends CRM_Volunteer
                    AND partner_access_group_contact.contact_id = $contactID ";
   }
 
+  /**
+   * Prevent the standard ACL-related "where" clause from being added to the
+   * query by unsetting it at the last possible opportunity.
+   *
+   * In some parent method -- not sure which -- the _aclWhere property gets set
+   * despite our efforts to null it in $this->buildACLClause(). All of our
+   * access control needs are met by $this->buildACLClause(), which is a bit
+   * more nuanced than out-of-the-box ACLs; the _aclWhere property is detritus
+   * from an access control approach that this report doesn't use.
+   */
+  function where() {
+    $this->_aclWhere = NULL;
+    parent::where();
+  }
+
 }
