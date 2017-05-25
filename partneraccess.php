@@ -134,6 +134,29 @@ function partneraccess_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 }
 
 /**
+ * Implements hook_civicrm_buildForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_buildForm/
+ */
+function partneraccess_civicrm_buildForm($formName, &$form) {
+  $function = '_' . __FUNCTION__ . '_' . $formName;
+  if (is_callable($function)) {
+    $function($form);
+  }
+}
+
+/**
+ * (Delegated) Implements hook_civicrm_buildForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_buildForm/
+ */
+function _partneraccess_civicrm_buildForm_CRM_Contact_Form_Search_Advanced(&$form) {
+  $form->setDefaults(array(
+    'contact_type' => array('Individual__Volunteer'),
+  ));
+}
+
+/**
  * Implements hook_civicrm_post().
  *
  * @link https://docs.civicrm.org/dev/en/master/hooks/hook_civicrm_post/
