@@ -98,7 +98,7 @@ class CRM_Partneraccess_AclManager {
       'deny' => 0,
       'entity_table' => 'civicrm_acl_role',
       'entity_id' => $this->volMgrRoleId,
-      'operation' => 'View',
+      'operation' => 'Edit',
       'object_table' => 'civicrm_saved_search',
       'object_id' => $this->groupManager->getGroupIdByType('varl_partner_access_smart_emailable'),
     );
