@@ -32,7 +32,7 @@ class CRM_Partneraccess_Listener_Activity_ActivityContact extends CRM_Partneracc
       try {
         $activity = self::fetchVolunteerActivity($event->object);
       }
-      catch (Exception $ex) {
+      catch (Throwable $ex) {
         // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
         return;
       }
@@ -65,7 +65,7 @@ class CRM_Partneraccess_Listener_Activity_ActivityContact extends CRM_Partneracc
       try {
         $activity = self::fetchVolunteerActivity($event->object);
       }
-      catch (Exception $ex) {
+      catch (Throwable $ex) {
         // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
         return;
       }
