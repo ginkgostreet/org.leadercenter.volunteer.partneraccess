@@ -28,19 +28,19 @@ class CRM_Partneraccess_Listener_Activity_ActivityContact extends CRM_Partneracc
    * @return void
    */
   public static function handleUpsert(\Symfony\Component\EventDispatcher\Event $event) {
-    if (isset($event->object)) {
-      try {
-        $activity = self::fetchVolunteerActivity($event->object);
-      }
-      catch (Throwable $ex) {
-        // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
-        return;
-      }
+    if ( ! isset($event->object) || ! is_a($event->object, CRM_Activity_DAO_Activity::class) ) {
+      return;
+    }
 
-      foreach (self::keyVolunteersByPartner($activity) as $partnerId => $contactIds) {
-        foreach ($contactIds as $contactId) {
-          CRM_Partneraccess_GroupMembershipManager::add($contactId, self::$volGroupType, $partnerId);
-        }
+    try {
+      $activity = self::fetchVolunteerActivity($event->object);
+    } catch (Throwable $ex) {
+      return; // Probably wasn't an ActivityContact of type Volunteer; bail out.
+    }
+
+    foreach (self::keyVolunteersByPartner($activity) as $partnerId => $contactIds) {
+      foreach ($contactIds as $contactId) {
+        CRM_Partneraccess_GroupMembershipManager::add($contactId, self::$volGroupType, $partnerId);
       }
     }
   }
@@ -61,20 +61,20 @@ class CRM_Partneraccess_Listener_Activity_ActivityContact extends CRM_Partneracc
    * @return void
    */
   public static function handlePreDelete(\Symfony\Component\EventDispatcher\Event $event) {
-    if (isset($event->object)) {
-      try {
-        $activity = self::fetchVolunteerActivity($event->object);
-      }
-      catch (Throwable $ex) {
-        // An exception means it wasn't an ActivityContact of type Volunteer; bail out.
-        return;
-      }
+    if ( ! isset($event->object) || ! is_a($event->object, CRM_Activity_DAO_Activity::class) ) {
+      return;
+    }
 
-      $volunteersByPartner = self::keyVolunteersByPartner($activity);
-      if (!empty($volunteersByPartner)) {
-        $event = new CRM_Partneraccess_Event_ActivityContact_Deleted($volunteersByPartner);
-        self::deferHandling($event);
-      }
+    try {
+      $activity = self::fetchVolunteerActivity($event->object);
+    } catch (Throwable $ex) {
+      return; // Probably wasn't an ActivityContact of type Volunteer; bail out.
+    }
+
+    $volunteersByPartner = self::keyVolunteersByPartner($activity);
+    if (!empty($volunteersByPartner)) {
+      $event = new CRM_Partneraccess_Event_ActivityContact_Deleted($volunteersByPartner);
+      self::deferHandling($event);
     }
   }
 
