@@ -31,20 +31,21 @@ class CRM_Partneraccess_Listener_Activity_Activity extends CRM_Partneraccess_Lis
    * @return void
    */
   public static function handlePreDelete(\Symfony\Component\EventDispatcher\Event $event) {
-    if (isset($event->object)) {
-      try {
-        $activity = self::fetchVolunteerActivity($event->object);
-      }
-      catch (Exception $ex) {
-        // An exception means it wasn't an Activity of type Volunteer; bail out.
-        return;
-      }
+    if (! isset($event->object) || ! is_a($event->object, CRM_Activity_DAO_Activity::class)) {
+      return;
+    }
 
-      foreach (self::keyVolunteersByPartner($activity) as $partnerId => $volunteerIds) {
-        foreach ($volunteerIds as $volunteerId) {
-          if (!self::hasVolunteerActivityWith($volunteerId, $partnerId, $activity['id'])) {
-            CRM_Partneraccess_GroupMembershipManager::remove($volunteerId, self::$volGroupType, $partnerId);
-          }
+    try {
+      $activity = self::fetchVolunteerActivity($event->object);
+    }
+    catch (Exception $ex) {
+      return; // Probably wasn't an Activity of type Volunteer; bail out.
+    }
+
+    foreach (self::keyVolunteersByPartner($activity) as $partnerId => $volunteerIds) {
+      foreach ($volunteerIds as $volunteerId) {
+        if (!self::hasVolunteerActivityWith($volunteerId, $partnerId, $activity['id'])) {
+          CRM_Partneraccess_GroupMembershipManager::remove($volunteerId, self::$volGroupType, $partnerId);
         }
       }
     }
